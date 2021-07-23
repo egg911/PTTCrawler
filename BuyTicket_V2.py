@@ -1,5 +1,7 @@
 import time, requests, json
 from bs4 import BeautifulSoup
+from fbchat import Client
+from fbchat.models import *
 
 class PttSpider():
     def __init__(self, url = "https://www.ptt.cc//bbs/drama-ticket/index.html"):
@@ -154,22 +156,27 @@ class ArticleOperater():
         return filted_articles
 
 class People():
-    def __init__(self, name = "", request = []):
+    def __init__(self, name = "", uid = "", request = []):
         self.name = name
+        self.uid = uid
         self.request = request
     
     def get_name(self):
         return self.name
+
+    def get_uid(self):
+        return self.uid
 
     def get_request(self):
         return self.request
 
     def filled_info_from_json(self, jsonDic):
         self.name = jsonDic['name']
+        self.uid = jsonDic['uid']
         self.request = jsonDic['request']
 
     def object2json(self):
-        return {"name" : self.name,"request" : self.request}
+        return {"name" : self.name,"uid" : self.uid ,"request" : self.request}
 
 class PeopleList():
     def __init__(self):
@@ -197,17 +204,27 @@ class PeopleList():
         file = FileOperate("People.json")
         file.saveFile(json_people_list)
 
+class FbBot():
+    def __init__(self, account, password):
+        self.client = Client(account, password)
+        
+    def send_msg(self, people, msg):
+        self.client.send(Message(text=msg), thread_id=people.get_uid(), thread_type=ThreadType.USER)
+        
+
 class Server():
     def __init__(self):
         self.articleOperater = ArticleOperater()
         self.people_list = PeopleList()
+        #self.fbbot = FbBot("account", "password")
         
     def main(self):
         new_article = self.articleOperater.get_new_articles()
         for i in self.people_list.get_people_list():
             sent_article_list = self.articleOperater.get_filted_articles(new_article, i)
             for j in sent_article_list:
-                print("For " + i.get_name() + " send " + j.get_title())
+                #self.fbbot.send_msg(i, j.get_content())
+                print("For " + i.get_name() + " send " + j.get_title() + "/n" +  j.get_content())
         self.articleOperater.update_old_article_list(new_article)
 
 if __name__ == '__main__':
